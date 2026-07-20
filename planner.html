@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Financial Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --paper:#F6F3EC; --card:#FFFDF8; --ink:#22302E; --teal:#1E4E4A;
+  --brass:#A9822F; --muted:#6E6A5C; --line:#E1DACA; --danger:#8C3B2E;
+  --focus:#2E6E68;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--paper);color:var(--ink);
+  font:16px/1.55 "Source Sans 3",system-ui,sans-serif;
+  padding-bottom:110px}
+main{max-width:880px;margin:0 auto;padding:0 20px}
+header.hero{max-width:880px;margin:0 auto;padding:56px 20px 28px}
+.hero h1{font-family:"Fraunces",serif;font-weight:650;font-size:clamp(30px,5vw,44px);
+  letter-spacing:-.01em;color:var(--teal)}
+.hero p.sub{margin-top:8px;color:var(--muted);max-width:60ch}
+.hero .rule{height:2px;background:var(--teal);width:88px;margin-top:20px}
+section.card{background:var(--card);border:1px solid var(--line);
+  border-left:4px solid var(--teal);border-radius:6px;
+  padding:26px 28px;margin:22px 0}
+section.card>h2{font-family:"Fraunces",serif;font-weight:650;font-size:21px;
+  color:var(--teal);margin-bottom:4px}
+section.card>p.hint{color:var(--muted);font-size:14px;margin-bottom:16px}
+label{display:block;font-size:13px;font-weight:600;letter-spacing:.02em;
+  color:var(--ink);margin-bottom:4px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);
+  border-radius:4px;background:#fff;font:15px "Source Sans 3",sans-serif;color:var(--ink)}
+input[type=number]{font-family:"IBM Plex Mono",monospace;font-size:14px}
+input:focus-visible,select:focus-visible,button:focus-visible,
+details summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.row{display:grid;gap:12px;margin-bottom:12px}
+.row.cf{grid-template-columns:2fr 1fr 1fr auto;align-items:end}
+.row.g2{grid-template-columns:1fr 1fr}
+.row.g3{grid-template-columns:1fr 1fr 1fr}
+@media (max-width:640px){.row.cf,.row.g2,.row.g3{grid-template-columns:1fr}}
+button{cursor:pointer;font:600 15px "Source Sans 3",sans-serif;border-radius:4px}
+.btn-ghost{background:none;border:1px dashed var(--teal);color:var(--teal);
+  padding:8px 14px}
+.btn-ghost:hover{background:var(--teal);color:var(--card)}
+.btn-x{background:none;border:1px solid var(--line);color:var(--danger);
+  padding:8px 12px;align-self:end}
+.btn-x:hover{border-color:var(--danger)}
+.chip{display:inline-flex;align-items:center;gap:8px;background:#FBF6E8;
+  border:1px solid var(--brass);color:var(--brass);border-radius:999px;
+  padding:5px 14px;font:500 13.5px "IBM Plex Mono",monospace;margin-top:10px}
+.chip b{font-weight:500}
+.asset{border:1px solid var(--line);border-radius:6px;padding:20px;margin-top:16px;
+  background:#fff}
+.asset-head{display:flex;justify-content:space-between;align-items:center;
+  gap:12px;margin-bottom:14px}
+.asset-head h3{font-family:"Fraunces",serif;font-size:17px;color:var(--ink)}
+details.method{border:1px solid var(--line);border-radius:5px;margin-top:10px;
+  background:var(--card)}
+details.method summary{list-style:none;display:flex;align-items:center;gap:10px;
+  padding:12px 14px;cursor:pointer;font-weight:600;font-size:14.5px}
+details.method summary::-webkit-details-marker{display:none}
+details.method[open] summary{border-bottom:1px solid var(--line)}
+.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--muted);
+  flex:none}
+.dot.done{background:var(--brass);border-color:var(--brass)}
+.m-body{padding:14px}
+.m-note{font-size:13px;color:var(--muted);margin-bottom:12px}
+.m-note b{color:var(--brass);font-weight:600}
+.status{position:fixed;left:0;right:0;bottom:0;background:var(--teal);
+  color:#F2EFE6;z-index:20}
+.status-in{max-width:880px;margin:0 auto;padding:14px 20px;display:flex;
+  align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.status .meta{font:13.5px "IBM Plex Mono",monospace;opacity:.9}
+.btn-go{background:var(--brass);color:#fff;border:none;padding:12px 26px;
+  font-size:16px}
+.btn-go:disabled{opacity:.5;cursor:not-allowed}
+.overlay{position:fixed;inset:0;background:rgba(34,48,46,.55);display:none;
+  align-items:center;justify-content:center;z-index:30;padding:20px}
+.overlay.show{display:flex}
+.panel{background:var(--card);border-radius:8px;max-width:560px;width:100%;
+  padding:34px;border-top:5px solid var(--brass)}
+.panel h3{font-family:"Fraunces",serif;color:var(--teal);font-size:22px;
+  margin-bottom:12px}
+.panel table{width:100%;border-collapse:collapse;margin:14px 0;
+  font:14px "IBM Plex Mono",monospace}
+.panel td{padding:7px 4px;border-bottom:1px solid var(--line)}
+.panel td:last-child{text-align:right;font-weight:500}
+.panel p{font-size:14px;color:var(--muted)}
+.panel .close{margin-top:20px;background:var(--teal);color:#fff;border:none;
+  padding:10px 22px}
+.err{color:var(--danger);font-size:14px;font-weight:600;margin-top:10px;display:none}
+.disc{font-size:12.5px;color:var(--muted);font-style:italic;margin:26px 0 8px;
+  border:1px solid var(--line);border-radius:6px;padding:14px;background:#FBF9F3}
+footer.credits{max-width:880px;margin:12px auto 0;padding:0 20px;
+  font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Personal Financial Planner</h1>
+  <p class="sub">Project your net worth with a 5,000-path Monte Carlo simulation.
+  All data comes from free Yahoo Finance pages; all calculations run in your
+  browser and the report downloads as a PDF. Nothing is sent anywhere.</p>
+  <div class="rule"></div>
+</header>
+
+<main>
+
+<section class="card" id="sec-income">
+  <h2>Income</h2>
+  <p class="hint">Salary, rent received, side income. Amounts are converted to a monthly equivalent.</p>
+  <div id="income-rows"></div>
+  <button class="btn-ghost" onclick="addCashflow('income')">+ Add income</button>
+</section>
+
+<section class="card" id="sec-expense">
+  <h2>Expenses</h2>
+  <p class="hint">Rent, bills, living costs — everything except investment contributions.</p>
+  <div id="expense-rows"></div>
+  <button class="btn-ghost" onclick="addCashflow('expense')">+ Add expense</button>
+</section>
+
+<section class="card">
+  <h2>Investment horizon</h2>
+  <p class="hint">The horizon decides which Yahoo Finance window you read. Enter it first, then open the product page.</p>
+  <div class="row g2">
+    <div>
+      <label for="horizon">Horizon (months)</label>
+      <input type="number" id="horizon" min="1" max="600" step="1" value="180"
+             oninput="refreshHorizon()">
+    </div>
+    <div style="align-self:end">
+      <span class="chip" id="chip-window">Yahoo window: <b>10 Years</b></span>
+    </div>
+  </div>
+  <p class="hint" id="horizon-note" style="margin:6px 0 0"></p>
+</section>
+
+<section class="card">
+  <h2>Investments</h2>
+  <p class="hint">Add each ETF or stock. For every asset, fill at least one methodology
+  (a methodology appears in the report only if it has data for <em>all</em> assets).
+  A brass dot marks a completed method.</p>
+  <div id="assets"></div>
+  <button class="btn-ghost" onclick="addAsset()">+ Add asset</button>
+  <div class="row g2" id="corr-row" style="display:none;margin-top:16px">
+    <div>
+      <label for="corr">Average correlation between assets (0&ndash;1)</label>
+      <input type="number" id="corr" min="0" max="1" step="0.05" value="0.7">
+      <p class="hint" style="margin-top:4px">Equity ETFs on similar markets: 0.7&ndash;0.9. Stocks vs bonds: 0.0&ndash;0.3.</p>
+    </div>
+  </div>
+</section>
+
+<p class="disc"><strong>Warning:</strong> the investment options are estimated by
+looking at <em>past</em> returns over the selected time horizon. Past returns are
+not indicative of future returns. We recommend investing for the long term
+whenever possible.</p>
+
+<p class="err" id="err"></p>
+
+</main>
+
+<div class="status">
+  <div class="status-in">
+    <span class="meta" id="status-meta">Fill in the form, then generate.</span>
+    <button class="btn-go" id="btn-go" onclick="generate()">Generate PDF report</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <h3>Report generated</h3>
+    <p>Your PDF has been downloaded. Expected final net worth at the end of the
+    horizon, by methodology:</p>
+    <table id="result-table"></table>
+    <p>Central estimates (median of 5,000 simulated paths), after capital gains tax.</p>
+    <button class="close" onclick="document.getElementById('overlay').classList.remove('show')">Close</button>
+  </div>
+</div>
+
+<footer class="credits">Engine: geometric-Brownian monthly log-returns, 5,000
+Monte Carlo paths with equicorrelated shocks, 95% confidence band
+(2.5th&ndash;97.5th percentiles). Identical methodology to the Python program in this
+repository.</footer>
+
+<script>
+/* =====================================================================
+   ENGINE - faithful port of Financial_planner_program.py
+   ===================================================================== */
+"use strict";
+
+const N_SIMULATIONS = 5000;
+const RANDOM_SEED   = 42;
+const REC_TO_MONTHLY = {daily:365/12, weekly:52/12, monthly:1, yearly:1/12};
+
+const METHODS = {
+  A_risktab: ["Method A - Risk Statistics tab",
+    "Yahoo 'Risk' tab: mean monthly return (annualized x12 by the program) and annualized standard deviation."],
+  B_history: ["Method B - Price history",
+    "CAGR from two prices + dividend yield; volatility from the 52-week High/Low range (Parkinson estimator)."],
+  C_capm: ["Method C - CAPM",
+    "Return = risk-free + Beta x market premium; volatility = |Beta| x market volatility (systematic risk only)."]
+};
+
+const DISCLAIMER =
+"WARNING: the investment options are estimated by looking at PAST\n" +
+"returns over the selected time horizon. Past returns are NOT\n" +
+"indicative of future returns. We recommend investing for the long\n" +
+"term whenever possible.";
+
+function horizonInfo(months){
+  const years = months/12;
+  let label, windowLabel, priceYears;
+  if (months<=36){label="short";  windowLabel="3 Years";  priceYears=3;}
+  else if (months<=84){label="medium"; windowLabel="5 Years";  priceYears=5;}
+  else {label="long";  windowLabel="10 Years"; priceYears=10;}
+  return {months, years, label, windowLabel, priceYears};
+}
+
+/* --- Estimates: identical formulas to the Python version --- */
+function fmtG(x){ // like Python %g
+  return Number.isInteger(x) ? String(x) : String(parseFloat(x.toPrecision(6)));
+}
+function estRisktab(meanMonthlyPct, sdAnnualPct, windowLabel){
+  const ret = meanMonthlyPct*12;
+  const note = "Yahoo Risk tab, "+windowLabel+" column: 'Mean Annual Return' "+
+    fmtG(meanMonthlyPct)+" is a MONTHLY mean -> x12 = "+ret.toFixed(2)+"%/y; "+
+    "Standard Deviation "+fmtG(sdAnnualPct)+"% already annual";
+  return [ret, sdAnnualPct, note];
+}
+function estHistory(pNow, pThen, years, hi52, lo52, divPct){
+  const cagr = (Math.pow(pNow/pThen, 1/years)-1)*100;
+  const ret = cagr + divPct;
+  const vol = Math.log(hi52/lo52)/(2*Math.sqrt(Math.LN2))*100;
+  const note = "return = CAGR "+(cagr>=0?"+":"")+cagr.toFixed(2)+"% over "+fmtG(years)+
+    "y + dividend "+divPct.toFixed(2)+"%; vol = ln("+fmtG(hi52)+"/"+fmtG(lo52)+
+    ")/(2*sqrt(ln2)) = "+vol.toFixed(2)+"%/y (Parkinson, 1-year estimate)";
+  return [ret, vol, note];
+}
+function estCapm(beta, rfPct, rmPct, mktVolPct){
+  const ret = rfPct + beta*(rmPct-rfPct);
+  const vol = Math.abs(beta)*mktVolPct;
+  const note = "return = "+fmtG(rfPct)+"% + "+fmtG(beta)+" x ("+fmtG(rmPct)+"% - "+
+    fmtG(rfPct)+"%); vol = |"+fmtG(beta)+"| x "+fmtG(mktVolPct)+"% market vol "+
+    "(SYSTEMATIC RISK ONLY - understates single-stock risk)";
+  return [ret, vol, note];
+}
+
+/* --- Asset helpers --- */
+function muMonthlyNet(asset, mk){
+  const netAnnual = (1+asset.estimates[mk][0]/100)/(1+asset.ter/100);
+  return Math.log(netAnnual)/12;
+}
+function sigmaMonthly(asset, mk){
+  return (asset.estimates[mk][1]/100)/Math.sqrt(12);
+}
+
+/* --- Seeded RNG: mulberry32 + Box-Muller --- */
+function mulberry32(seed){
+  let a = seed>>>0;
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a>>>15), 1 | a);
+    t = (t + Math.imul(t ^ (t>>>7), 61 | t)) ^ t;
+    return ((t ^ (t>>>14)) >>> 0) / 4294967296;
+  };
+}
+function gaussianFactory(seed){
+  const u = mulberry32(seed);
+  let spare = null;
+  return function(){
+    if (spare!==null){const s=spare; spare=null; return s;}
+    let u1=0, u2;
+    while(u1===0) u1=u();
+    u2=u();
+    const r=Math.sqrt(-2*Math.log(u1)), th=2*Math.PI*u2;
+    spare = r*Math.sin(th);
+    return r*Math.cos(th);
+  };
+}
+
+/* numpy-style linear-interpolated percentile on a SORTED array */
+function percentileSorted(sorted, q){
+  const idx = (q/100)*(sorted.length-1);
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  if (lo===hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi]-sorted[lo])*(idx-lo);
+}
+
+/* --- Core simulation: one methodology --- */
+function simulate(incomes, expenses, assets, correlation, months, mk, seed){
+  const monthlyIncome  = incomes.reduce((s,c)=>s+c.amount*REC_TO_MONTHLY[c.rec],0);
+  const monthlyExpenses= expenses.reduce((s,c)=>s+c.amount*REC_TO_MONTHLY[c.rec],0);
+  const monthlyContrib = assets.reduce((s,a)=>s+a.contribution*REC_TO_MONTHLY[a.rec],0);
+  const monthlyNetCash = monthlyIncome - monthlyExpenses - monthlyContrib;
+
+  const cashPath = new Float64Array(months+1);
+  for(let t=0;t<=months;t++) cashPath[t]=monthlyNetCash*t;
+
+  const r = {method:mk, months, monthlyIncome, monthlyExpenses,
+             monthlyContrib, monthlyNetCash, cashPath, assets, correlation};
+
+  const n = assets.length;
+  if(n===0){
+    const zero = new Float64Array(months+1);
+    Object.assign(r,{assetExpected:null, portfolioExpected:zero,
+      contributed:zero, band95:null, totalExpected:cashPath.slice(),
+      taxes:0, netPortfolioValue:0, finalWealth:cashPath[months],
+      grossGain:0, totalContributed:0, grossValue:0});
+    return r;
+  }
+
+  const C = assets.map(a=>a.contribution*REC_TO_MONTHLY[a.rec]);
+  const mu = assets.map(a=>muMonthlyNet(a,mk));
+  const sig= assets.map(a=>sigmaMonthly(a,mk));
+  const V0 = assets.map(a=>a.initial);
+
+  /* Central (median) path per asset: deterministic compounding */
+  const assetExpected = [];
+  const contributed   = [];
+  assetExpected.push(V0.slice());
+  contributed.push(V0.slice());
+  const g = mu.map(Math.exp);
+  for(let m=1;m<=months;m++){
+    const prevA=assetExpected[m-1], prevC=contributed[m-1];
+    const nowA=new Array(n), nowC=new Array(n);
+    for(let j=0;j<n;j++){
+      nowA[j]=(prevA[j]+C[j])*g[j];
+      nowC[j]=prevC[j]+C[j];
+    }
+    assetExpected.push(nowA); contributed.push(nowC);
+  }
+  const portfolioExpected = new Float64Array(months+1);
+  for(let m=0;m<=months;m++)
+    portfolioExpected[m]=assetExpected[m].reduce((s,v)=>s+v,0);
+
+  /* Monte Carlo, equicorrelated shocks:
+     shock_i = sqrt(rho)*common + sqrt(1-rho)*idio_i */
+  const gauss = gaussianFactory(seed);
+  const rho = n>1 ? correlation : 0;
+  const sqR = Math.sqrt(rho), sqI = Math.sqrt(1-rho);
+  const values = new Float64Array(N_SIMULATIONS*n);
+  for(let s=0;s<N_SIMULATIONS;s++)
+    for(let j=0;j<n;j++) values[s*n+j]=V0[j];
+
+  const paths = new Float64Array((months+1)*N_SIMULATIONS);
+  for(let s=0;s<N_SIMULATIONS;s++){
+    let tot=0; for(let j=0;j<n;j++) tot+=values[s*n+j];
+    paths[s]=tot;
+  }
+  for(let m=1;m<=months;m++){
+    const base=m*N_SIMULATIONS;
+    for(let s=0;s<N_SIMULATIONS;s++){
+      const common=gauss();
+      let tot=0;
+      for(let j=0;j<n;j++){
+        const z = sqR*common + sqI*gauss();
+        const rr = mu[j] + sig[j]*z;
+        const v = (values[s*n+j]+C[j])*Math.exp(rr);
+        values[s*n+j]=v; tot+=v;
+      }
+      paths[base+s]=tot;
+    }
+  }
+
+  const lo95=new Float64Array(months+1), hi95=new Float64Array(months+1);
+  const buf=new Float64Array(N_SIMULATIONS);
+  for(let m=0;m<=months;m++){
+    buf.set(paths.subarray(m*N_SIMULATIONS,(m+1)*N_SIMULATIONS));
+    buf.sort();
+    lo95[m]=percentileSorted(buf,2.5);
+    hi95[m]=percentileSorted(buf,97.5);
+  }
+
+  /* Taxes at end of horizon on the central estimate, per asset */
+  let taxes=0;
+  for(let j=0;j<n;j++){
+    const gain=assetExpected[months][j]-contributed[months][j];
+    if(gain>0) taxes+=gain*assets[j].tax/100;
+  }
+  const grossValue=portfolioExpected[months];
+  const totalContributed=contributed[months].reduce((s,v)=>s+v,0);
+  const netPortfolioValue=grossValue-taxes;
+
+  const totalExpected=new Float64Array(months+1);
+  for(let m=0;m<=months;m++) totalExpected[m]=cashPath[m]+portfolioExpected[m];
+
+  Object.assign(r,{assetExpected, portfolioExpected, contributed,
+    band95:[lo95,hi95], totalExpected, grossValue, totalContributed,
+    grossGain:grossValue-totalContributed, taxes, netPortfolioValue,
+    finalWealth:cashPath[months]+netPortfolioValue});
+  return r;
+}
+
+/* =====================================================================
+   TEXT REPORT - same layout as the Python report pages
+   ===================================================================== */
+const padL=(s,w)=>String(s).padStart(w);
+const padR=(s,w)=>String(s).padEnd(w);
+const f0=x=>x.toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0});
+const f2=x=>x.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function methodHeader(mk){
+  return "=".repeat(68)+"\nMETHODOLOGY: "+METHODS[mk][0]+"\n"+
+         "=".repeat(68)+"\n"+METHODS[mk][1];
+}
+
+function inputSummary(incomes, expenses, assets, correlation, mk){
+  const L=["=".repeat(68),"INPUT DATA","=".repeat(68),"","Income:"];
+  if(!incomes.length) L.push("  (none)");
+  for(const cf of incomes)
+    L.push("  "+padR(cf.name,24)+padL(f2(cf.amount),12)+" EUR  "+padR(cf.rec,8)+
+           "(= "+padL(f2(cf.amount*REC_TO_MONTHLY[cf.rec]),10)+" EUR/month)");
+  L.push("","Expenses:");
+  if(!expenses.length) L.push("  (none)");
+  for(const cf of expenses)
+    L.push("  "+padR(cf.name,24)+padL(f2(cf.amount),12)+" EUR  "+padR(cf.rec,8)+
+           "(= "+padL(f2(cf.amount*REC_TO_MONTHLY[cf.rec]),10)+" EUR/month)");
+  L.push("","Investments:");
+  if(!assets.length) L.push("  (none)");
+  for(const a of assets){
+    L.push("  "+padR(a.label,24)+"initial "+padL(f2(a.initial),10)+" EUR, "+
+           padL(f2(a.contribution),8)+" EUR "+a.rec);
+    const ret=a.estimates[mk][0], vol=a.estimates[mk][1];
+    L.push("  "+" ".repeat(24)+"return "+(ret>=0?"+":"")+ret.toFixed(2)+"%/y, "+
+           "vol "+vol.toFixed(2)+"%/y, TER "+a.ter+"%, tax "+a.tax+"%");
+    let note=a.estimates[mk][2];
+    while(note){ L.push("  "+" ".repeat(24)+"| "+note.slice(0,64)); note=note.slice(64); }
+  }
+  if(assets.length>1){
+    L.push("");
+    L.push("  Assumed correlation between assets: "+correlation.toFixed(2));
+  }
+  return L.join("\n");
+}
+
+function evolutionTable(r){
+  const months=r.months, hasAssets=r.assets.length>0;
+  let steps=[];
+  if(months<=24){for(let m=1;m<=months;m++) steps.push(m);}
+  else{for(let m=12;m<=months;m+=12) steps.push(m);
+       if(steps[steps.length-1]!==months) steps.push(months);}
+  const L=["=".repeat(68),"EVOLUTION TABLE  (EUR)","=".repeat(68)];
+  let header;
+  if(hasAssets)
+    header=padL("Month",6)+" | "+padL("Income-Cost",12)+" | "+padL("Contributed",12)+" | "+
+           padL("Invest.(exp)",12)+" | "+padL("95% low",11)+" | "+padL("95% high",11)+" | "+
+           padL("Total(exp)",12);
+  else header=padL("Month",6)+" | "+padL("Income-Cost",12)+" | "+padL("Total",12);
+  L.push(header, "-".repeat(header.length));
+  for(const m of steps){
+    const cash=r.cashPath[m];
+    if(hasAssets){
+      const contrib=r.contributed[m].reduce((s,v)=>s+v,0);
+      L.push(padL(m,6)+" | "+padL(f0(cash),12)+" | "+padL(f0(contrib),12)+" | "+
+             padL(f0(r.portfolioExpected[m]),12)+" | "+padL(f0(r.band95[0][m]),11)+" | "+
+             padL(f0(r.band95[1][m]),11)+" | "+padL(f0(r.totalExpected[m]),12));
+    }else
+      L.push(padL(m,6)+" | "+padL(f0(cash),12)+" | "+padL(f0(cash),12));
+  }
+  L.push("-".repeat(header.length));
+  L.push("Income-Cost = cumulative (income - expenses - contributions).");
+  if(hasAssets){
+    L.push("Invest.(exp) = central (median) portfolio value before taxes.");
+    L.push("Total(exp)   = Income-Cost + Invest.(exp), before taxes.");
+  }
+  return L.join("\n");
+}
+
+function summaryText(r){
+  const m=r.months, assets=r.assets;
+  const L=["=".repeat(68),
+    "PROJECTION SUMMARY  ("+m+" months = "+(m/12).toFixed(1)+" years)  ["+METHODS[r.method][0]+"]",
+    "=".repeat(68),
+    "Monthly income:              "+padL(f2(r.monthlyIncome),14)+" EUR",
+    "Monthly expenses:            "+padL(f2(r.monthlyExpenses),14)+" EUR",
+    "Monthly invested (plans):    "+padL(f2(r.monthlyContrib),14)+" EUR",
+    "Monthly net cash flow:       "+padL(f2(r.monthlyNetCash),14)+" EUR"];
+  if(r.monthlyNetCash<0){
+    L.push("  WARNING: negative net cash flow - you spend more than you");
+    L.push("  earn after investment contributions.");
+  }
+  L.push("-".repeat(68));
+  L.push("Cash accumulated:            "+padL(f2(r.cashPath[m]),14)+" EUR");
+  if(assets.length){
+    const lo95=r.band95[0][m], hi95=r.band95[1][m];
+    L.push("", "Portfolio ("+assets.length+" asset(s)):");
+    assets.forEach(function(a,j){
+      L.push("  "+a.label+": contributed "+f2(r.contributed[m][j])+" EUR -> expected "+
+             f2(r.assetExpected[m][j])+" EUR");
+    });
+    L.push("");
+    L.push("  Total contributed:         "+padL(f2(r.totalContributed),14)+" EUR");
+    L.push("  Expected gross value:      "+padL(f2(r.grossValue),14)+" EUR");
+    L.push("  95% confidence interval:   "+padL(f2(lo95),14)+" - "+f2(hi95)+" EUR");
+    L.push("  Expected gross gain:       "+padL(f2(r.grossGain),14)+" EUR");
+    L.push("  Capital gains tax:         "+padL(f2(r.taxes),14)+" EUR");
+    L.push("  Expected net value:        "+padL(f2(r.netPortfolioValue),14)+" EUR");
+    L.push("-".repeat(68));
+    L.push("EXPECTED FINAL NET WORTH:    "+padL(f2(r.finalWealth),14)+" EUR");
+  }else{
+    L.push("-".repeat(68));
+    L.push("FINAL NET WORTH (no invest): "+padL(f2(r.cashPath[m]),14)+" EUR");
+  }
+  L.push("=".repeat(68),"",DISCLAIMER);
+  return L.join("\n");
+}
+
+/* =====================================================================
+   CHART DRAWING on canvas (rendered into the PDF as an image)
+   ===================================================================== */
+const CHART_W=1754, CHART_H=1240;  /* A4 landscape @ 150 dpi */
+const COLORS={cash:"#E58A2E", inv:"#2E8B57", total:"#2455A4",
+              contrib:"#8A8A8A", band:"rgba(46,139,87,0.18)"};
+const CMP_COLORS={A_risktab:"#2E8B57", B_history:"#7A4FA3", C_capm:"#C0392B"};
+
+function niceTicks(min,max,count){
+  const span=(max-min)||1;
+  const step0=span/count;
+  const mag=Math.pow(10,Math.floor(Math.log10(step0)));
+  const norm=step0/mag;
+  const step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+  const t0=Math.ceil(min/step)*step, ticks=[];
+  for(let t=t0;t<=max+1e-9;t+=step) ticks.push(t);
+  return ticks;
+}
+
+function chartArea(){return {x0:130,y0:100,x1:CHART_W-60,y1:CHART_H-120};}
+
+function drawChartBase(ctx,title){
+  ctx.fillStyle="#FFFFFF"; ctx.fillRect(0,0,CHART_W,CHART_H);
+  ctx.fillStyle="#222222"; ctx.font="600 32px 'Source Sans 3',Arial,sans-serif";
+  ctx.textAlign="center"; ctx.fillText(title,CHART_W/2,56);
+  ctx.font="italic 20px 'Source Sans 3',Arial,sans-serif"; ctx.fillStyle="#666666";
+  ctx.fillText("Estimates based on past returns - past performance is not indicative of future results.",
+               CHART_W/2,CHART_H-22);
+}
+
+function drawAxes(ctx,months,vmin,vmax){
+  const A=chartArea();
+  const xs=function(v){return A.x0+(v/months)*(A.x1-A.x0);};
+  const ys=function(v){return A.y1-((v-vmin)/(vmax-vmin))*(A.y1-A.y0);};
+  ctx.strokeStyle="#DDDDDD"; ctx.lineWidth=1; ctx.fillStyle="#444444";
+  ctx.font="19px 'IBM Plex Mono',monospace";
+  for(const t of niceTicks(vmin,vmax,7)){
+    ctx.beginPath(); ctx.moveTo(A.x0,ys(t)); ctx.lineTo(A.x1,ys(t)); ctx.stroke();
+    ctx.textAlign="right"; ctx.fillText(f0(t),A.x0-10,ys(t)+7);
+  }
+  for(const t of niceTicks(0,months,10)){
+    ctx.beginPath(); ctx.moveTo(xs(t),A.y0); ctx.lineTo(xs(t),A.y1); ctx.stroke();
+    ctx.textAlign="center"; ctx.fillText(f0(t),xs(t),A.y1+30);
+  }
+  if(vmin<0&&vmax>0){ctx.strokeStyle="#000000";ctx.beginPath();
+    ctx.moveTo(A.x0,ys(0));ctx.lineTo(A.x1,ys(0));ctx.stroke();}
+  ctx.strokeStyle="#888888"; ctx.strokeRect(A.x0,A.y0,A.x1-A.x0,A.y1-A.y0);
+  ctx.fillStyle="#333333"; ctx.font="600 22px 'Source Sans 3',Arial,sans-serif";
+  ctx.textAlign="center";
+  ctx.fillText("Months",(A.x0+A.x1)/2,A.y1+72);
+  ctx.save(); ctx.translate(36,(A.y0+A.y1)/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText("EUR",0,0); ctx.restore();
+  return {xs:xs,ys:ys};
+}
+
+function drawLine(ctx,sc,data,color,width,dash){
+  ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash||[]);
+  ctx.beginPath();
+  for(let m=0;m<data.length;m++){
+    const X=sc.xs(m), Y=sc.ys(data[m]);
+    if(m) ctx.lineTo(X,Y); else ctx.moveTo(X,Y);
+  }
+  ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawBand(ctx,sc,lo,hi,fillStyle){
+  ctx.fillStyle=fillStyle; ctx.beginPath();
+  ctx.moveTo(sc.xs(0),sc.ys(hi[0]));
+  for(let m=1;m<hi.length;m++) ctx.lineTo(sc.xs(m),sc.ys(hi[m]));
+  for(let m=lo.length-1;m>=0;m--) ctx.lineTo(sc.xs(m),sc.ys(lo[m]));
+  ctx.closePath(); ctx.fill();
+}
+
+function drawLegend(ctx,items){
+  const A=chartArea();
+  ctx.font="21px 'Source Sans 3',Arial,sans-serif"; ctx.textAlign="left";
+  let w=0;
+  for(const it of items) w=Math.max(w,ctx.measureText(it[0]).width);
+  w+=76;
+  const hgt=items.length*32+16;
+  ctx.fillStyle="rgba(255,255,255,0.92)";
+  ctx.fillRect(A.x0+14,A.y0+12,w,hgt);
+  ctx.strokeStyle="#BBBBBB"; ctx.lineWidth=1;
+  ctx.strokeRect(A.x0+14,A.y0+12,w,hgt);
+  let y=A.y0+42;
+  for(const it of items){
+    const label=it[0], color=it[1], dash=it[2], band=it[3];
+    if(band){ctx.fillStyle=color; ctx.fillRect(A.x0+26,y-12,34,16);}
+    else{ctx.strokeStyle=color; ctx.lineWidth=4.5; ctx.setLineDash(dash||[]);
+      ctx.beginPath(); ctx.moveTo(A.x0+26,y-4); ctx.lineTo(A.x0+60,y-4);
+      ctx.stroke(); ctx.setLineDash([]);}
+    ctx.fillStyle="#222222"; ctx.fillText(label,A.x0+72,y+3);
+    y+=32;
+  }
+}
+
+function projectionChart(r){
+  const cv=document.createElement("canvas");
+  cv.width=CHART_W; cv.height=CHART_H;
+  const ctx=cv.getContext("2d");
+  const hasAssets=r.assets.length>0;
+  let title="Wealth projection - "+METHODS[r.method][0];
+  if(hasAssets){
+    let lab=r.assets.slice(0,3).map(function(a){return a.label;}).join(", ");
+    if(r.assets.length>3) lab+=", ...";
+    title+="  |  "+lab;
+  }
+  drawChartBase(ctx,title);
+  let vmin=0, vmax=1;
+  const consider=function(arr){for(const v of arr){if(v<vmin)vmin=v;if(v>vmax)vmax=v;}};
+  consider(r.cashPath); consider(r.totalExpected);
+  if(hasAssets){consider(r.band95[0]); consider(r.band95[1]);}
+  vmax*=1.04;
+  const sc=drawAxes(ctx,r.months,vmin,vmax);
+  const legend=[];
+  if(hasAssets){
+    drawBand(ctx,sc,r.band95[0],r.band95[1],COLORS.band);
+    legend.push(["Portfolio 95% CI",COLORS.band,null,true]);
+  }
+  drawLine(ctx,sc,r.cashPath,COLORS.cash,4,[14,10]);
+  legend.push(["Cash: income - expenses",COLORS.cash,[14,10]]);
+  if(hasAssets){
+    drawLine(ctx,sc,r.portfolioExpected,COLORS.inv,4);
+    legend.push(["Investments (expected)",COLORS.inv]);
+    const contribTot=r.contributed.map(function(a){return a.reduce(function(s,v){return s+v;},0);});
+    drawLine(ctx,sc,contribTot,COLORS.contrib,2.5,[4,8]);
+    legend.push(["Contributed capital",COLORS.contrib,[4,8]]);
+  }
+  drawLine(ctx,sc,r.totalExpected,COLORS.total,6);
+  legend.push(["Total: cash + investments",COLORS.total]);
+  drawLegend(ctx,legend);
+  return cv.toDataURL("image/jpeg",0.92);
+}
+
+function comparisonChart(results){
+  const cv=document.createElement("canvas");
+  cv.width=CHART_W; cv.height=CHART_H;
+  const ctx=cv.getContext("2d");
+  drawChartBase(ctx,"Investment value - comparison of the methodologies (central estimate with 95% CI)");
+  let vmax=1, months=0;
+  for(const mk in results){
+    const r=results[mk]; months=r.months;
+    for(const v of r.band95[1]) if(v>vmax) vmax=v;
+  }
+  const sc=drawAxes(ctx,months,0,vmax*1.04);
+  const legend=[]; let contribDrawn=false;
+  for(const mk in results){
+    const r=results[mk], col=CMP_COLORS[mk];
+    const c=parseInt(col.slice(1),16);
+    drawBand(ctx,sc,r.band95[0],r.band95[1],
+      "rgba("+((c>>16)&255)+","+((c>>8)&255)+","+(c&255)+",0.10)");
+    drawLine(ctx,sc,r.portfolioExpected,col,5);
+    legend.push([METHODS[mk][0],col]);
+    if(!contribDrawn){
+      const ct=r.contributed.map(function(a){return a.reduce(function(s,v){return s+v;},0);});
+      drawLine(ctx,sc,ct,COLORS.contrib,2.5,[4,8]);
+      legend.push(["Contributed capital",COLORS.contrib,[4,8]]);
+      contribDrawn=true;
+    }
+  }
+  drawLegend(ctx,legend);
+  return cv.toDataURL("image/jpeg",0.92);
+}
+
+/* =====================================================================
+   PDF ASSEMBLY (jsPDF) - cover, per-method chart+text, comparison
+   ===================================================================== */
+function buildPdf(h, assets, results, reports){
+  const jsPDF=window.jspdf.jsPDF;
+  const doc=new jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
+  const W=210;
+
+  /* ---- Cover ---- */
+  doc.setFont("helvetica","bold"); doc.setFontSize(26); doc.setTextColor(20);
+  doc.text("PERSONAL FINANCIAL PLAN",W/2,42,{align:"center"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(13); doc.setTextColor(105);
+  doc.text("Multi-methodology wealth projection",W/2,52,{align:"center"});
+  doc.setDrawColor(20); doc.setLineWidth(0.5); doc.line(32,60,178,60);
+
+  const stamp=new Date().toLocaleString("en-GB",
+    {day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  const info=[
+    ["Generated",stamp],
+    ["Horizon",h.months+" months (~"+h.years.toFixed(1)+" years, "+h.label+" term)"],
+    ["Yahoo data window",h.windowLabel],
+    ["Assets",assets.length?assets.map(function(a){return a.label;}).join(", "):"(none - cash only)"],
+    ["Methodologies",""]
+  ];
+  let y=78;
+  doc.setFontSize(11);
+  for(const kv of info){
+    doc.setFont("helvetica","bold"); doc.setTextColor(20);
+    doc.text(kv[0]+":",32,y);
+    doc.setFont("helvetica","normal");
+    const lines=doc.splitTextToSize(kv[1],95);
+    if(lines.length) doc.text(lines,80,y);
+    y+=Math.max(1,lines.length)*6+3;
+  }
+  for(const mk in results){
+    doc.setFont("helvetica","normal"); doc.setFontSize(11); doc.setTextColor(20);
+    doc.text("\u2022 "+METHODS[mk][0],80,y); y+=6;
+    doc.setFontSize(8.5); doc.setTextColor(105);
+    const dl=doc.splitTextToSize(METHODS[mk][1],92);
+    doc.text(dl,84,y); y+=dl.length*4.2+4;
+  }
+  doc.setFillColor(245,245,242); doc.setDrawColor(200);
+  doc.roundedRect(28,224,154,30,2,2,"FD");
+  doc.setFont("helvetica","italic"); doc.setFontSize(9); doc.setTextColor(90);
+  doc.text(doc.splitTextToSize(DISCLAIMER.replace(/\n/g," "),142),W/2,232,
+           {align:"center"});
+  doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(130);
+  doc.text("Data source: Yahoo Finance (finance.yahoo.com), free public pages.",
+           W/2,282,{align:"center"});
+
+  /* ---- Per methodology: chart page + text pages ---- */
+  for(const mk in results){
+    doc.addPage("a4","landscape");
+    doc.addImage(projectionChart(results[mk]),"JPEG",0,0,297,210);
+    addTextPages(doc,reports[mk]);
+  }
+
+  if(Object.keys(results).length>1 && assets.length){
+    doc.addPage("a4","landscape");
+    doc.addImage(comparisonChart(results),"JPEG",0,0,297,210);
+  }
+
+  doc.setProperties({title:"Personal Financial Plan",
+                     author:"Personal Financial Planner"});
+  const d=new Date(), pad=function(n){return String(n).padStart(2,"0");};
+  doc.save("Financial_Report_"+d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+".pdf");
+}
+
+function addTextPages(doc,text){
+  const LINES=84, LH=3.3;
+  const lines=text.split("\n");
+  for(let i=0;i<lines.length;i+=LINES){
+    doc.addPage("a4","portrait");
+    doc.setFont("courier","normal"); doc.setFontSize(7.5); doc.setTextColor(15);
+    let y=12;
+    for(const ln of lines.slice(i,i+LINES)){ doc.text(ln,14,y); y+=LH; }
+  }
+}
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+let assetId=0;
+
+function addCashflow(kind){
+  const div=document.createElement("div");
+  div.className="row cf";
+  div.innerHTML=
+    '<div><label>Name</label><input type="text" placeholder="'+(kind==="income"?"Salary":"Rent")+'" data-f="name"></div>'+
+    '<div><label>Amount (EUR)</label><input type="number" min="0" step="0.01" data-f="amount"></div>'+
+    '<div><label>Recurrence</label><select data-f="rec">'+
+      '<option>daily</option><option>weekly</option>'+
+      '<option selected>monthly</option><option>yearly</option></select></div>'+
+    '<button class="btn-x" onclick="this.parentElement.remove()" aria-label="Remove row">Remove</button>';
+  document.getElementById(kind+"-rows").appendChild(div);
+}
+
+function refreshHorizon(){
+  const m=parseInt(document.getElementById("horizon").value)||0;
+  const h=horizonInfo(Math.max(1,m));
+  document.querySelector("#chip-window b").textContent=h.windowLabel;
+  document.getElementById("horizon-note").textContent=
+    'On Yahoo, read the "'+h.windowLabel+'" column of the Risk Statistics table '+
+    '(Method A / C) and the price '+h.priceYears+' years ago (Method B).';
+  document.querySelectorAll(".js-window").forEach(function(el){el.textContent=h.windowLabel;});
+  document.querySelectorAll(".js-pyears").forEach(function(el){el.textContent=h.priceYears;});
+  updateStatus();
+}
+
+function addAsset(){
+  const id=++assetId;
+  const div=document.createElement("div");
+  div.className="asset"; div.dataset.id=id;
+  div.innerHTML=
+  '<div class="asset-head"><h3>Asset '+id+'</h3>'+
+  '<button class="btn-x" onclick="this.closest(\'.asset\').remove();toggleCorr();updateStatus()">Remove asset</button></div>'+
+  '<div class="row g3">'+
+    '<div><label>Label (name or ISIN)</label><input type="text" placeholder="iShares Core MSCI World" data-f="label" oninput="updateStatus()"></div>'+
+    '<div><label>Initial capital (EUR)</label><input type="number" min="0" step="0.01" value="0" data-f="initial"></div>'+
+    '<div><label>TER (% per year)</label><input type="number" min="0" step="0.01" value="0.20" data-f="ter"></div>'+
+  '</div>'+
+  '<div class="row g3">'+
+    '<div><label>Contribution (EUR)</label><input type="number" min="0" step="0.01" value="0" data-f="contribution"></div>'+
+    '<div><label>Contribution recurrence</label><select data-f="rec">'+
+      '<option>daily</option><option>weekly</option>'+
+      '<option selected>monthly</option><option>yearly</option></select></div>'+
+    '<div><label>Capital gains tax (%)</label><input type="number" min="0" step="0.1" value="26" data-f="tax"></div>'+
+  '</div>'+
+  '<details class="method" data-mk="A_risktab">'+
+    '<summary><span class="dot"></span>Method A - Risk Statistics tab</summary>'+
+    '<div class="m-body">'+
+      '<p class="m-note">Yahoo product page &rarr; left column &rarr; <b>Risk</b> &rarr; '+
+      'Risk Statistics table, <b class="js-window">10 Years</b> column. '+
+      'Despite its name, "Mean Annual Return" is a <b>monthly</b> mean &mdash; '+
+      'copy it as shown; the program annualizes it (&times;12).</p>'+
+      '<div class="row g2">'+
+        '<div><label>Mean Annual Return (%, monthly mean)</label>'+
+          '<input type="number" step="0.01" data-f="a_mean" oninput="markDot(this)"></div>'+
+        '<div><label>Standard Deviation (%, annualized)</label>'+
+          '<input type="number" step="0.01" data-f="a_sd" oninput="markDot(this)"></div>'+
+      '</div></div></details>'+
+  '<details class="method" data-mk="B_history">'+
+    '<summary><span class="dot"></span>Method B - Price history</summary>'+
+    '<div class="m-body">'+
+      '<p class="m-note">Current price, the price <b class="js-pyears">10</b> years ago '+
+      '(Historical Data tab), the 52-Week Range (low&ndash;high of the <b>past 12 months</b>) '+
+      'and the dividend yield. Accumulating ETFs: enter dividend 0.</p>'+
+      '<div class="row g3">'+
+        '<div><label>Current price</label><input type="number" step="0.0001" data-f="b_pnow" oninput="markDot(this)"></div>'+
+        '<div><label>Price <span class="js-pyears">10</span> years ago</label><input type="number" step="0.0001" data-f="b_pthen" oninput="markDot(this)"></div>'+
+        '<div><label>Dividend yield (%)</label><input type="number" step="0.01" value="0" data-f="b_div" oninput="markDot(this)"></div>'+
+      '</div>'+
+      '<div class="row g2">'+
+        '<div><label>52-week high</label><input type="number" step="0.0001" data-f="b_hi" oninput="markDot(this)"></div>'+
+        '<div><label>52-week low</label><input type="number" step="0.0001" data-f="b_lo" oninput="markDot(this)"></div>'+
+      '</div></div></details>'+
+  '<details class="method" data-mk="C_capm">'+
+    '<summary><span class="dot"></span>Method C - CAPM</summary>'+
+    '<div class="m-body">'+
+      '<p class="m-note">Beta from the same Risk Statistics table '+
+      '(<b class="js-window">10 Years</b> column). Market return/volatility: read them '+
+      'with the Method-A procedure on a broad <b>market ETF</b> page (e.g. VOO, URTH). '+
+      'Not meaningful for a world-index ETF itself (Beta &asymp; 1 by definition).</p>'+
+      '<div class="row g2">'+
+        '<div><label>Beta</label><input type="number" step="0.01" data-f="c_beta" oninput="markDot(this)"></div>'+
+        '<div><label>Risk-free rate (% per year)</label><input type="number" step="0.01" data-f="c_rf" oninput="markDot(this)"></div>'+
+      '</div>'+
+      '<div class="row g2">'+
+        '<div><label>Market return (% per year)</label><input type="number" step="0.01" data-f="c_rm" oninput="markDot(this)"></div>'+
+        '<div><label>Market volatility (% per year)</label><input type="number" step="0.01" data-f="c_vol" oninput="markDot(this)"></div>'+
+      '</div></div></details>';
+  document.getElementById("assets").appendChild(div);
+  refreshHorizon(); toggleCorr();
+}
+
+function toggleCorr(){
+  const n=document.querySelectorAll(".asset").length;
+  document.getElementById("corr-row").style.display = n>1 ? "grid":"none";
+}
+
+const METHOD_FIELDS={
+  A_risktab:["a_mean","a_sd"],
+  B_history:["b_pnow","b_pthen","b_hi","b_lo","b_div"],
+  C_capm:["c_beta","c_rf","c_rm","c_vol"]
+};
+function methodComplete(det){
+  const mk=det.dataset.mk;
+  return METHOD_FIELDS[mk].every(function(f){
+    const el=det.querySelector('[data-f='+f+']');
+    return el && el.value.trim()!=="" && isFinite(parseFloat(el.value));
+  });
+}
+function markDot(input){
+  const det=input.closest("details.method");
+  det.querySelector(".dot").classList.toggle("done",methodComplete(det));
+  updateStatus();
+}
+function updateStatus(){
+  const n=document.querySelectorAll(".asset").length;
+  let done=0, tot=0;
+  document.querySelectorAll("details.method").forEach(function(d){
+    tot++; if(methodComplete(d)) done++;
+  });
+  document.getElementById("status-meta").textContent =
+    n===0 ? "No assets yet - cash-only projection."
+          : n+" asset(s) \u00b7 "+done+"/"+tot+" method cards completed";
+}
+
+function readCashflows(kind){
+  const out=[];
+  document.querySelectorAll("#"+kind+"-rows .row").forEach(function(row){
+    const name=row.querySelector("[data-f=name]").value.trim();
+    const amount=parseFloat(row.querySelector("[data-f=amount]").value);
+    const rec=row.querySelector("[data-f=rec]").value;
+    if(name && isFinite(amount) && amount>0) out.push({name:name,amount:amount,rec:rec});
+  });
+  return out;
+}
+
+function fail(msg){
+  const e=document.getElementById("err");
+  e.textContent=msg; e.style.display="block";
+  e.scrollIntoView({block:"center"});
+  throw new Error(msg);
+}
+
+function generate(){
+  document.getElementById("err").style.display="none";
+  const btn=document.getElementById("btn-go");
+  btn.disabled=true; btn.textContent="Simulating\u2026";
+  setTimeout(function(){
+    try{ runGenerate(); }
+    catch(ex){ /* fail() already showed the message */ }
+    finally{ btn.disabled=false; btn.textContent="Generate PDF report"; }
+  },30);
+}
+
+function runGenerate(){
+  const months=parseInt(document.getElementById("horizon").value);
+  if(!isFinite(months)||months<1||months>600)
+    fail("Horizon must be between 1 and 600 months.");
+  const h=horizonInfo(months);
+  const incomes=readCashflows("income");
+  const expenses=readCashflows("expense");
+
+  const assets=[];
+  document.querySelectorAll(".asset").forEach(function(div){
+    const get=function(f){return div.querySelector('[data-f='+f+']');};
+    const label=get("label").value.trim()||("Asset "+div.dataset.id);
+    const initial=parseFloat(get("initial").value)||0;
+    const contribution=parseFloat(get("contribution").value)||0;
+    const rec=get("rec").value;
+    const ter=parseFloat(get("ter").value)||0;
+    const tax=parseFloat(get("tax").value)||0;
+    if(initial<=0 && contribution<=0) return;  /* empty card, skip */
+
+    const estimates={};
+    div.querySelectorAll("details.method").forEach(function(det){
+      if(!methodComplete(det)) return;
+      const v=function(f){return parseFloat(det.querySelector('[data-f='+f+']').value);};
+      const mk=det.dataset.mk;
+      if(mk==="A_risktab")
+        estimates[mk]=estRisktab(v("a_mean"),v("a_sd"),h.windowLabel);
+      else if(mk==="B_history"){
+        if(v("b_pthen")<=0||v("b_lo")<=0||v("b_hi")<v("b_lo"))
+          fail('"'+label+'": Method B prices must be positive and high >= low.');
+        estimates[mk]=estHistory(v("b_pnow"),v("b_pthen"),h.priceYears,
+                                 v("b_hi"),v("b_lo"),v("b_div"));
+      }else
+        estimates[mk]=estCapm(v("c_beta"),v("c_rf"),v("c_rm"),v("c_vol"));
+    });
+    if(Object.keys(estimates).length===0)
+      fail('"'+label+'": fill in at least one methodology completely.');
+    assets.push({label:label,initial:initial,contribution:contribution,
+                 rec:rec,ter:ter,tax:tax,estimates:estimates});
+  });
+
+  let correlation=0;
+  if(assets.length>1){
+    correlation=parseFloat(document.getElementById("corr").value);
+    if(!isFinite(correlation)||correlation<0||correlation>1)
+      fail("Correlation must be between 0 and 1.");
+  }
+
+  /* Methodologies available for ALL assets (same rule as the Python program) */
+  let available;
+  if(assets.length)
+    available=Object.keys(METHODS).filter(function(mk){
+      return assets.every(function(a){return mk in a.estimates;});
+    });
+  else available=["A_risktab"];
+  if(assets.length && !available.length)
+    fail("No methodology has data for every asset - each report needs one method completed for ALL assets.");
+
+  const results={}, reports={};
+  let seed=RANDOM_SEED;
+  for(const mk of available){
+    const r=simulate(incomes,expenses,assets,correlation,months,mk,seed++);
+    results[mk]=r;
+    reports[mk]=[methodHeader(mk),"",
+      inputSummary(incomes,expenses,assets,correlation,mk),"",
+      evolutionTable(r),"",summaryText(r)].join("\n");
+  }
+
+  buildPdf(h,assets,results,reports);
+
+  const tb=document.getElementById("result-table");
+  tb.innerHTML="";
+  for(const mk in results){
+    const tr=document.createElement("tr");
+    tr.innerHTML="<td>"+METHODS[mk][0]+"</td><td>"+f2(results[mk].finalWealth)+" EUR</td>";
+    tb.appendChild(tr);
+  }
+  document.getElementById("overlay").classList.add("show");
+}
+
+/* --- boot --- */
+addCashflow("income");
+addCashflow("expense");
+addAsset();
+refreshHorizon();
+</script>
+</body>
+</html>
